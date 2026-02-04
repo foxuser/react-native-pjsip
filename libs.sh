@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
 
-VERSION="v2.9.2"
-URL="https://github.com/codeion/react-native-pjsip-builder/releases/download/${VERSION}/release.tar.gz"
+# v3.0.0 includes 16KB page alignment support for Android 15+
+VERSION="v3.0.0"
+URL="https://github.com/foxuser/react-native-pjsip-builder/releases/download/${VERSION}/release.tar.gz"
 LOCK=".libs.lock"
 DEST=".libs.tar.gz"
 DOWNLOAD=true
