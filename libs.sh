@@ -27,7 +27,7 @@ fi
 
 if [ "$DOWNLOAD" = true ]; then
     curl -L --silent "${URL}" -o "${DEST}"
-    tar -xvf "${DEST}"
+    tar --overwrite --exclude='._*' -xf "${DEST}"
     rm -f "${DEST}"
 
     echo "${VERSION}" > ${LOCK}
