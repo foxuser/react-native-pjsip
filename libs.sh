@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# v3.0.1 includes 16KB page alignment support for Android 15+ and iOS VialerPJSIP.framework
-VERSION="v3.0.1"
+# v3.0.2 includes 16KB page alignment support and raises Android PJSUA_MAX_ACC
+VERSION="v3.0.2"
 URL="https://github.com/foxuser/react-native-pjsip-builder/releases/download/${VERSION}/release.tar.gz"
 LOCK=".libs.lock"
 DEST=".libs.tar.gz"

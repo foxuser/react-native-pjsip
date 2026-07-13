@@ -74,6 +74,10 @@ public class PjSipService extends Service {
 
     private static String ACCOUNTS = "ACCOUNTS";
 
+    // App-level account cap. The bundled libpjsua2.so must be built with a higher
+    // PJSUA_MAX_ACC because PJSIP also creates local/internal accounts.
+    private static final int MAX_PJSIP_ACCOUNTS = 6;
+
     public static final String STARTED_FROM_SERVICE = "started_from_service";
 
     private boolean mInitialized;
@@ -694,6 +698,25 @@ public class PjSipService extends Service {
 
         String idUri = configuration.getIdUri();
         String regUri = configuration.getRegUri();
+
+        // Guard: if PJSIP already has a live account with this idUri (can happen when the
+        // Android service survives an app-process restart on Android 14+), return the
+        // existing account instead of adding a duplicate. Calling pjsua_acc_add for an
+        // already-registered URI causes acc_cnt to grow unboundedly and eventually
+        // triggers a native assertion crash once PJSUA_MAX_ACC is reached.
+        for (PjSipAccount existing : mAccounts) {
+            if (idUri.equals(existing.getConfiguration().getIdUri())) {
+                Log.w(TAG, "doAccountCreate: account already exists for " + idUri + ", reusing");
+                return existing;
+            }
+        }
+
+        if (mAccounts.size() >= MAX_PJSIP_ACCOUNTS) {
+            String message = "doAccountCreate: account limit reached (" + mAccounts.size()
+                    + "/" + MAX_PJSIP_ACCOUNTS + "), refusing to create " + idUri;
+            Log.e(TAG, message);
+            throw new Exception(message);
+        }
 
         cfg.setIdUri(idUri);
         cfg.getRegConfig().setRegistrarUri(regUri);
