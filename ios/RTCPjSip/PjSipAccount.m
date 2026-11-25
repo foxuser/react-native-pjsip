@@ -152,6 +152,15 @@
 #pragma mark -
 
 
++ (NSString *)errorText:(pj_status_t)status {
+    if (status == PJ_SUCCESS) {
+        return @"";
+    }
+    char buf[PJ_ERR_MSG_SIZE];
+    pj_str_t text = pj_strerror(status, buf, sizeof(buf));
+    return [[NSString alloc] initWithBytes:text.ptr length:text.slen encoding:NSUTF8StringEncoding] ?: @"";
+}
+
 - (NSDictionary *)toJsonDictionary {
     pjsua_acc_info info;
     pjsua_acc_get_info(self.id, &info);
@@ -162,6 +171,10 @@
         @"statusText": [PjSipUtil toString:&info.status_text],
         @"active": [PjSipUtil isActive:&info.expires],
         @"reason": @"test",
+        @"code": @(info.status),
+        @"expires": @(info.expires),
+        @"lastErr": @(info.reg_last_err),
+        @"lastErrText": [PjSipAccount errorText:info.reg_last_err],
         @"cloudUser": self.cloud[@"userName"] == nil ? [NSNull null] : self.cloud[@"userName"],
         @"cloudPass": self.cloud[@"password"] == nil ? [NSNull null] : self.cloud[@"password"],
         @"cloudURL": self.cloud[@"url"] == nil ? [NSNull null] : self.cloud[@"url"],

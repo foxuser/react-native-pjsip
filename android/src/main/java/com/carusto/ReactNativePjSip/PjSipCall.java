@@ -35,6 +35,10 @@ public class PjSipCall extends Call {
         this.account = acc;
     }
 
+    public PjSipAccount getAccount() {
+        return account;
+    }
+
     public PjSipCall(PjSipAccount acc) {
         super(acc);
         this.account = acc;

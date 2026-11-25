@@ -6,7 +6,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 import com.carusto.ReactNativePjSip.utils.ArgumentUtils;
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
@@ -51,6 +53,8 @@ public class PjSipBroadcastReceiver extends BroadcastReceiver {
         filter.addAction(PjActions.EVENT_CALL_SCREEN_LOCKED);
         filter.addAction(PjActions.EVENT_MESSAGE_RECEIVED);
         filter.addAction(PjActions.EVENT_HANDLED);
+        filter.addAction(PjActions.EVENT_LOG);
+        filter.addAction(PjActions.EVENT_SERVICE_DESTROYED);
 
         return filter;
     }
@@ -58,6 +62,19 @@ public class PjSipBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
+
+        if (PjActions.EVENT_LOG.equals(action)) {
+            onLog(intent);
+            return;
+        }
+        if (PjActions.EVENT_SERVICE_DESTROYED.equals(action)) {
+            try {
+                emit("pjSipServiceDestroyed", null);
+            } catch (Exception e) {
+                // JS not ready
+            }
+            return;
+        }
 
         Log.d(TAG, "Received \""+ action +"\" response from service (" + ArgumentUtils.dumpIntentExtraParameters(intent) + ")");
 
@@ -102,6 +119,17 @@ public class PjSipBroadcastReceiver extends BroadcastReceiver {
         String json = intent.getStringExtra("data");
         Object params = ArgumentUtils.fromJson(json);
         emit("pjSipRegistrationChanged", params);
+    }
+
+    private void onLog(Intent intent) {
+        WritableMap params = Arguments.createMap();
+        params.putInt("level", intent.getIntExtra("level", 0));
+        params.putString("msg", intent.getStringExtra("msg"));
+        try {
+            context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("pjSipLog", params);
+        } catch (Exception e) {
+            // JS not ready
+        }
     }
 
     private void onMessageReceived(Intent intent) {
@@ -161,6 +189,16 @@ public class PjSipBroadcastReceiver extends BroadcastReceiver {
     private void emit(String eventName, @Nullable Object data) {
         Log.d(TAG, "emit " + eventName + " / " + data);
 
-        context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(eventName, data);
+        // The service outlives the React context (reload, activity destroyed): getJSModule throws
+        // IllegalStateException on a context without an active instance and kills the app.
+        if (!context.hasActiveReactInstance()) {
+            Log.w(TAG, "emit " + eventName + " dropped: no active React instance");
+            return;
+        }
+        try {
+            context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(eventName, data);
+        } catch (IllegalStateException e) {
+            Log.w(TAG, "emit " + eventName + " dropped: " + e.getMessage());
+        }
     }
 }

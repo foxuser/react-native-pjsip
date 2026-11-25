@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.json.JSONObject;
 import org.pjsip.pjsua2.Account;
+import org.pjsip.pjsua2.Endpoint;
 import org.pjsip.pjsua2.OnIncomingCallParam;
 import org.pjsip.pjsua2.OnInstantMessageParam;
 import org.pjsip.pjsua2.OnRegStateParam;
@@ -109,6 +110,17 @@ public class PjSipAccount extends Account {
             registration.put("statusText", getInfo().getRegStatusText());
             registration.put("active", getInfo().getRegIsActive());
             registration.put("reason", reason);
+            registration.put("code", getInfo().getRegStatus());
+            registration.put("expires", getInfo().getRegExpiresSec());
+            int lastErr = getInfo().getRegLastErr();
+            registration.put("lastErr", lastErr);
+            if (lastErr != 0) {
+                try {
+                    registration.put("lastErrText", Endpoint.instance().utilStrError(lastErr));
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
             registration.put("cloudUser", cloudUser);
             registration.put("cloudPass", cloudPass);
             registration.put("cloudURL", cloudURL);

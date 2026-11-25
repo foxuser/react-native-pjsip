@@ -10,7 +10,40 @@
 #import "PjSipEndpoint.h"
 #import "PjSipMessage.h"
 
+// pjsip log level (1=error ... 4=info incl. SIP messages) up to which entries are sent to JS,
+// 0 = nothing. Set from JS via PjSipModule.setLogLevel while the app logs.
+static volatile int logForwardLevel = 0;
+// kept separately: [PjSipEndpoint instance] must not be used here, pjsua logs
+// while the instance is created (dispatch_once would deadlock)
+static __weak RCTBridge *logBridge = nil;
+
+// called on pjsip threads: never call back into pjsip here
+static void onPjLog(int level, const char *data, int len) {
+    // keep the console output pjsua writes when no callback is set
+    pj_log_write(level, data, len);
+    if (level > logForwardLevel) {
+        return;
+    }
+    RCTBridge *bridge = logBridge;
+    if (bridge == nil) {
+        return;
+    }
+    NSString *msg = [[NSString alloc] initWithBytes:data length:len encoding:NSUTF8StringEncoding];
+    if (msg == nil) {
+        msg = [[NSString alloc] initWithBytes:data length:len encoding:NSASCIIStringEncoding];
+    }
+    if (msg == nil) {
+        return;
+    }
+    [[bridge eventDispatcher] sendAppEventWithName:@"pjSipLog" body:@{@"level": @(level), @"msg": msg}];
+}
+
 @implementation PjSipEndpoint
+
++ (void) setLogForwardLevel: (int) level bridge: (RCTBridge *) bridge {
+    logBridge = bridge;
+    logForwardLevel = level;
+}
 
 + (instancetype) instance {
     static PjSipEndpoint *sharedInstance = nil;
@@ -78,6 +111,9 @@
         pjsua_logging_config log_cfg;
         pjsua_logging_config_default(&log_cfg);
         log_cfg.console_level = 10;
+        // entries up to this level are passed to onPjLog, it decides what is forwarded to JS
+        log_cfg.level = 4;
+        log_cfg.cb = &onPjLog;
 
         // Init media config
         pjsua_media_config mediaConfig;

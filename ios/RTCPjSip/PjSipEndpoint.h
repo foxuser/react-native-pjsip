@@ -17,6 +17,7 @@
 @property bool isSpeaker;
 
 +(instancetype)instance;
++(void)setLogForwardLevel:(int)level bridge:(RCTBridge *)bridge;
 
 -(NSDictionary *)start: (NSDictionary *) config;
 -(NSDictionary *)stop: (NSDictionary *) config;

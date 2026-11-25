@@ -48,6 +48,17 @@ public class PjSipBroadcastEmiter {
         }
     }
 
+    /**
+     * The service is destroyed (e.g. stopped by Android), all accounts are gone.
+     */
+    public void fireServiceDestroyed() {
+        Intent intent = new Intent();
+        intent.setAction(PjActions.EVENT_SERVICE_DESTROYED);
+        intent.setPackage(context.getPackageName());
+
+        context.sendBroadcast(intent);
+    }
+
     public void fireStopped(Intent original) {
         Intent intent = new Intent();
         intent.setAction(PjActions.EVENT_STOPPED);

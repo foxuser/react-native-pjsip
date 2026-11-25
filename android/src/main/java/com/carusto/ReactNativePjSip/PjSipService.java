@@ -193,9 +193,10 @@ public class PjSipService extends Service {
 
             EpConfig epConfig = new EpConfig();
 
-            epConfig.getLogConfig().setLevel(1);
-            epConfig.getLogConfig().setConsoleLevel(1);
-            mLogWriter = new PjSipLogWriter();
+            // the writer only gets entries up to the console level, it decides what is forwarded
+            epConfig.getLogConfig().setLevel(PjSipLogWriter.NATIVE_LEVEL);
+            epConfig.getLogConfig().setConsoleLevel(PjSipLogWriter.NATIVE_LEVEL);
+            mLogWriter = new PjSipLogWriter(this);
             epConfig.getLogConfig().setWriter(mLogWriter);
 
             if (mServiceConfiguration.isUserAgentNotEmpty()) {
@@ -380,6 +381,10 @@ public class PjSipService extends Service {
 
     @Override
     public void onDestroy() {
+        Log.w(TAG, "PjSipService destroyed, accounts and calls are gone");
+        if (mEmitter != null) {
+            mEmitter.fireServiceDestroyed();
+        }
         // Kill all active accounts
 //         for (PjSipAccount a : mAccounts) {
 //             evict(a);
@@ -833,6 +838,14 @@ public class PjSipService extends Service {
 
             if (account == null) {
                 throw new Exception("Account with \"" + accountId + "\" id not found");
+            }
+
+            // Deleting the account frees its native object while a call still references it:
+            // the next call.toJson (e.g. fireStarted) segfaults in pj::Account::getId.
+            for (PjSipCall call : mCalls) {
+                if (call.getAccount() == account) {
+                    throw new Exception("Account with \"" + accountId + "\" id has an active call");
+                }
             }
 
             ListIterator<AccountConfigurationDTO> iter = mAccountsCfg.listIterator();

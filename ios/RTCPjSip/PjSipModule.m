@@ -29,6 +29,12 @@
     return YES;
 }
 
+// pjsip log level (0=off, 1=error ... 4=info incl. SIP messages) up to which
+// native log entries are emitted as "pjSipLog" events.
+RCT_EXPORT_METHOD(setLogLevel: (int) level) {
+    [PjSipEndpoint setLogForwardLevel:level bridge:self.bridge];
+}
+
 RCT_EXPORT_METHOD(start: (NSDictionary *) config callback: (RCTResponseSenderBlock) callback) {
     [PjSipEndpoint instance].bridge = self.bridge;
 

@@ -32,6 +32,15 @@ public class PjSipModule extends ReactContextBaseJavaModule {
         return "PjSipModule";
     }
 
+    /**
+     * pjsip log level (0=off, 1=error ... 4=info incl. SIP messages) up to which
+     * native log entries are emitted as "pjSipLog" events.
+     */
+    @ReactMethod
+    public void setLogLevel(int level) {
+        PjSipLogWriter.setForwardLevel(level);
+    }
+
     @ReactMethod
     public void start(ReadableMap configuration, Callback callback) {
         int id = receiver.register(callback);
